@@ -7,9 +7,39 @@
 
 function was_settings() {
 ?>
-	<p>PlaceHolder</p>
+	<div class="wrap">
+		<h2><?php _e('Wordpress Ad Server'); ?></h2>
+		<p>Placeholder</p>
+	</div>
 <?php
 }
+
+
+/**
+ * Initialise the Plugin
+ *   ** Create Database
+ */
+function initialisePlugin() {
+	global $wpdb;
+	global $table_prefix;
+	
+	$databaseExists = get_option( 'was_db_exists' );
+	
+	if ( $databaseExists == "" ) {
+		$sql = "CREATE TABLE `". $table_prefix ."was_data` (
+			`advertisment_id` int(11) NOT NULL auto_increment,
+			`advertisment_active` int(11) NOT NULL default '',
+			`advertisment_name` varchar(200) NOT NULL default '',
+			`advertisment_code` text NOT NULL,
+			PRIMARY KEY  (`advertisment_id`)
+			) ENGINE=MyISAM;"
+		$wpdb->query( $sql );
+		
+		// Just temporary solution. Should actually test if database exists..
+		add_option( 'was_db_exists', 'yes', 'Flag for the database. If set (to yes) database exists', 'no');
+	}
+}
+
 
 add_action('admin_menu', 'was_menu');
 
