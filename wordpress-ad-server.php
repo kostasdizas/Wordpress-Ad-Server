@@ -1,10 +1,16 @@
 <?php
 /*
 	Plugin Name: Wordpress-Ad-Server
+	Description: An advertisment server for wordpress.
 	Version: 0.1
 	Author: Kostas Dizas
 */
 
+/**
+ * Settings page
+ * 
+ * @since 0.1
+ */
 function was_settings() {
 
 	if ( !current_user_can( 'manage_options' ) ) {
@@ -14,44 +20,75 @@ function was_settings() {
 ?>
 	<div class="wrap">
 		<h2><?php _e('Wordpress Ad Server'); ?></h2>
-		<p>Placeholder	</p>
+		<p>Placeholder</p>
 	</div>
 <?php
 }
 
 
 /**
- * Initialise the Plugin
- *   ** Create Database
+ * Shortcode [was id=""]
+ * 
+ * @since 0.1
+ * 
+ * @uses shortcode_atts()
+ * @todo does nothing right now. 
  */
-function initialisePlugin() {
+function was_shortcode( $atts, $content = null ) {
+	extract( shortcode_atts( array(
+		'id' => 0
+	), $atts ) );
+	
+	return '<div class="was-' . esc_attr($id) . '">' . $content . '</div>';
+}
+
+add_shortcode( 'was', 'was_shortcode' );
+
+
+/**
+ * Install the plugin
+ * 
+ * This function runs when the plugin is activated. Checks if database table exists and creates it.
+ * 
+ * @since 0.1
+ */
+function was_install() {
 	global $wpdb;
-	global $table_prefix;
+	global $was_db_version;
+	$was_db_version = '0.1';
 	
-	$databaseExists = get_option( 'was_db_exists' );
+	$table_name = $wpdb->prefix . 'was_data';
 	
-	if ( $databaseExists == "" ) {
-		$sql = "CREATE TABLE `". $table_prefix ."was_data` (
-			`advertisment_id` int(11) NOT NULL auto_increment,
-			`advertisment_active` int(11) NOT NULL default '',
-			`advertisment_name` varchar(200) NOT NULL default '',
+	if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+		$sql = "CREATE TABLE `". $table_name ." (
+			`advertisment_id` int(11) NOT NULL AUTO_INCREMENT,
+			`advertisment_active` int(11) DEFAULT '' NOT NULL,
+			`advertisment_name` varchar(200) DEFAULT '' NOT NULL,
 			`advertisment_code` text NOT NULL,
 			PRIMARY KEY  (`advertisment_id`)
-			) ENGINE=MyISAM;"
-		$wpdb->query( $sql );
-		
-		// Just temporary solution. Should actually test if database exists..
-		add_option( 'was_db_exists', 'yes', 'Flag for the database. If set (to yes) database exists', 'no');
+			);";
+		require_once( ABSPATH . 'wp-admin/includes/upgrade.php');
+		dbDelta($sql);
+		add_option( 'was_db_version', $was_db_version );
 	}
 }
 
+register_activation_hook( __FILE__, 'was_install' );
 
-add_action('admin_menu', 'was_menu');
 
+/**
+ * Create a new top-level menu page
+ * 
+ * @uses add_menu_page
+ * 
+ * @since 0.1
+ */
 function was_menu() {
 	if (function_exists('add_menu_page')) {
 		add_menu_page( __('Wordpress Ad Server'), __('Wordpress Ad Server'), 'edit_theme_options', 'was-settings', 'was_settings' );
 	}
 }
+
+add_action('admin_menu', 'was_menu');
 
 ?>
