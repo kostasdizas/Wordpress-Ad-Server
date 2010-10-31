@@ -6,48 +6,8 @@
 	Author: Kostas Dizas
 */
 
-class WAS_Class {
+include_once( 'WAS_Class.php' );
 
-	/**
-	 * Variables
-	 */
-	$table_name;
-	
-	/**
-	 * Constructor
-	 */
-	function WAS_Class() {
-		global $wpdb;
-		$this->$table_name = $wpdb->prefix . 'was_data';
-	}
-	
-	/**
-	 * Get all entries from the db table
-	 * 
-	 * @return array
-	 */
-	function getEntries() {
-		global $wpdb;
-		$table_name = $wpdb->prefix . 'was_data';
-		$sql = "SELECT * FROM ". $table_name ." ORDER BY `advertisment_id` ASC";
-		$ads = $wpdb->get_results( $sql );
-		return $ads;
-	}
-	
-	/**
-	 * Add an entry to the db table
-	 * 
-	 * @param array $entry
-	 */
-	function addEntry( $entry ) {
-		global $wpdb;
-		
-		$rows_affected = $wpdb->insert( $this->table_name, array(
-			'advertisment_name' => $wpdb->escape( $entry['name'] ),
-			'advertisment_code' => $wpdb->escape( $entry['code'] )
-		));
-	}
-}
 
 /**
  * Settings page
@@ -55,7 +15,15 @@ class WAS_Class {
  * @since 0.1
  */
 function was_settings() {
+	global $wpdb;
+	
+	$ads_class = new WAS_Class();
 
+	if ( isset( $_POST[ 'advertisment_name' ] ) ) {
+		$data = $_POST;
+		$ads_class->addEntry($data);
+	}
+	
 	if ( !current_user_can( 'manage_options' ) ) {
 		wp_die( __('You do not have sufficient permissions to access this page.') );
 	}
@@ -63,19 +31,49 @@ function was_settings() {
 ?>
 	<div class="wrap">
 		<h2><?php _e('Wordpress Ad Server'); ?></h2>
+		<h3><?php _e('All Database Entries'); ?></h3>
 		<dl>
 <?php
-	$ads_class = new WAS_Class();
 	foreach( $ads_class->getEntries() as $ad ) {
 ?>
-			<dt><?php echo $ad->advertisment_name ?></dt>
-			<dd><textarea><?php echo $ad->advertisment_code ?></textarea></dd>
+			<dt>
+				<?php echo $ad->advertisment_name ?>
+				<span style="font-size:smaller;color:<?php echo ( $ad->advertisment_active ) ? 'green' : 'red'; ?>">[<?php echo ( $ad->advertisment_active ) ? 'active' : 'inactive'; ?>]</span>
+			</dt>
+			<dd><code><?php echo htmlentities($ad->advertisment_code)  ?></code></dd>
 <?php
 	}
 ?>
 		</dl>
 	</div>
 <?php
+	was_new();
+}
+
+
+/**
+ * New entry form
+ * 
+ * @todo its a seperate function because it should be displayed in its own page 
+ * @todo or modular dialog
+ * 
+ * @since 0.1
+ */
+function was_new() {
+?>
+	<div class="new-entry">
+		<h3><?php _e('Add New Entry'); ?></h3>
+		<form method="post">
+			<label for="advertisment_name">Name</label>
+			<input type="text" id="advertisment_name" name="advertisment_name" />
+			<br />
+			<label for="advertisment_code">Code</label>
+			<textarea id="advertisment_code" name="advertisment_code"></textarea>
+			<br />
+			<button type="submit">Save</button>
+		</form>
+	</div>
+<?php	
 }
 
 
