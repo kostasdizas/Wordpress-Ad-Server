@@ -6,7 +6,12 @@
 	Author: Kostas Dizas
 */
 
+// Show notices (DEBUGGING ONLY)
+error_reporting(E_ALL);
+
+
 include_once( 'WAS_Class.php' );
+include_once( 'Advertisment.php' );
 
 
 /**
@@ -37,10 +42,10 @@ function was_settings() {
 	foreach( $ads_class->getEntries() as $ad ) {
 ?>
 			<dt>
-				<?php echo $ad->advertisment_name ?>
-				<span style="font-size:smaller;color:<?php echo ( $ad->advertisment_active ) ? 'green' : 'red'; ?>">[<?php echo ( $ad->advertisment_active ) ? 'active' : 'inactive'; ?>]</span>
+				<?php echo $ad->getName() ?>
+				<span style="font-size:smaller;color:<?php echo ( $ad->isActive() ) ? 'green' : 'red'; ?>">[<?php echo ( $ad->isActive() ) ? 'active' : 'inactive'; ?>]</span>
 			</dt>
-			<dd><code><?php echo htmlentities($ad->advertisment_code)  ?></code></dd>
+			<dd><code><?php echo htmlentities($ad->getHtml())  ?></code></dd>
 <?php
 	}
 ?>
@@ -69,6 +74,9 @@ function was_new() {
 			<br />
 			<label for="advertisment_code">Code</label>
 			<textarea id="advertisment_code" name="advertisment_code"></textarea>
+			<br />
+			<label for="advertisment_active">Active</label>
+			<input type="checkbox" id="advertisment_active" name="advertisment_active" />
 			<br />
 			<button type="submit">Save</button>
 		</form>

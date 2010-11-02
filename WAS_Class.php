@@ -21,8 +21,13 @@ class WAS_Class {
 	 */
 	function getEntries() {
 		global $wpdb;
-		$sql = "SELECT * FROM `". $this->table_name ."` ORDER BY `advertisment_id` ASC";
+		$sql = "SELECT `advertisment_id` FROM `". $this->table_name ."` ORDER BY `advertisment_id` ASC";
 		$ads = $wpdb->get_results( $sql );
+		
+		foreach( $ads as &$ad ) {
+			$ad = new Advertisment($ad->advertisment_id, $this->table_name);
+		}
+		
 		return $ads;
 	}
 	
@@ -36,7 +41,7 @@ class WAS_Class {
 		
 		$rows_affected = $wpdb->insert( $this->table_name, array(
 			'advertisment_name' => $wpdb->escape( $entry['advertisment_name'] ),
-			'advertisment_code' => $wpdb->escape( $entry['advertisment_code'] )
+			'advertisment_code' => $entry['advertisment_code']
 		));
 	}
 }
