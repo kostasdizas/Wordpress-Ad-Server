@@ -13,6 +13,22 @@ error_reporting(E_ALL);
 include_once( 'WAS_Class.php' );
 include_once( 'Advertisment.php' );
 
+/**
+ * Various tests. This function will be removed when not needed
+ */
+function tests() {
+	$test = new Advertisment();
+	$test->setName('Tester');
+	$test->setHtml('<p>something</p>');
+	$test->setActive();
+	var_dump($test);
+	
+	$test1 = new Advertisment(1);
+	$test1->setName('First (again)');
+	$test1->updateDatabase();
+	var_dump($test1);
+}
+
 
 /**
  * Settings page
@@ -23,7 +39,11 @@ function was_settings() {
 	global $wpdb;
 	
 	$ads_class = new WAS_Class();
-
+	
+	
+	$this->tests();
+	
+	
 	if ( isset( $_POST[ 'advertisment_name' ] ) ) {
 		$data = $_POST;
 		$ads_class->addEntry($data);
