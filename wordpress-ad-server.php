@@ -41,7 +41,7 @@ function was_settings() {
 	$ads_class = new WAS_Class();
 	
 	
-	$this->tests();
+	tests();
 	
 	
 	if ( isset( $_POST[ 'advertisment_name' ] ) ) {
