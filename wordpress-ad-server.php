@@ -98,10 +98,35 @@ function was_new() {
 			<label for="advertisment_active">Active</label>
 			<input type="checkbox" id="advertisment_active" name="advertisment_active" />
 			<br />
-			<button type="submit">Save</button>
+			<button type="submit">Create</button>
 		</form>
 	</div>
 <?php	
+}
+
+
+/**
+ * Edit entry
+ */
+function was_edit($id) {
+	$ad = new Advertisment($id);
+?>
+	<div class="edit-entry">
+		<h3><?php _e('Edit Entry'); ?></h3>
+		<form method="post">
+			<label for="advertisment_name">Name</label>
+			<input type="text" id="advertisment_name" name="advertisment_name" value="<?php echo $ad->getName() ?>" />
+			<br />
+			<label for="advertisment_code">Code</label>
+			<textarea id="advertisment_code" name="advertisment_code"><?php echo $ad->getHtml() ?></textarea>
+			<br />
+			<label for="advertisment_active">Active</label>
+			<input type="checkbox" id="advertisment_active" name="advertisment_active" <?php ($ad->isActive)?'checked="checked" ':'' ?>/>
+			<br />
+			<button type="submit">Update</button>
+		</form>
+	</div>
+<?php
 }
 
 
