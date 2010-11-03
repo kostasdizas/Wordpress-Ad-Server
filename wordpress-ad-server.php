@@ -121,7 +121,7 @@ function was_edit($id) {
 			<textarea id="advertisment_code" name="advertisment_code"><?php echo $ad->getHtml() ?></textarea>
 			<br />
 			<label for="advertisment_active">Active</label>
-			<input type="checkbox" id="advertisment_active" name="advertisment_active" <?php ($ad->isActive())?'checked="checked" ':'' ?>/>
+			<input type="checkbox" id="advertisment_active" name="advertisment_active" <?php echo ($ad->isActive())?'checked="checked" ':'' ?>/>
 			<br />
 			<button type="submit">Update</button>
 		</form>
