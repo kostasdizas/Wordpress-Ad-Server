@@ -5,7 +5,7 @@ class Advertisment {
 	/**
 	 * Variables
 	 */
-	var $id, $table_name, $data;
+	var $id, $table_name, $data, $needsUpdate;
 	
 	/**
 	 * Constructor
@@ -13,15 +13,20 @@ class Advertisment {
 	 * @param int    $id
 	 * @param string $table_name
 	 */
-	function Advertisment( $id, $table_name ) {
+	function Advertisment( $id = null ) {
 		global $wpdb;
 		
-		$this->table_name = $table_name;
+		$this->table_name = $wpdb->prefix . 'was_data';
+		
+		$this->id = $id;
 		
 		if ($id == null) {
-			
+			$this->data = array(
+				'advertisment_name' => null,
+				'advertisment_code' => null,
+				'advertisment_active' => null
+			);
 		} else {
-			$this->id = $id;
 			$this->data = (array) $wpdb->get_row( $wpdb->prepare(
 				"SELECT `advertisment_name`,
 				`advertisment_code`, `advertisment_active`
@@ -32,19 +37,27 @@ class Advertisment {
 	}
 	
 	/**
-	 * Constructor for new entries
-	 */
-//	function Advertisment(  ) {
-//		
-//	}
-	
-	/**
 	 * Returns the html code of the advertisment
 	 * 
 	 * @return mixed
 	 */
 	function getHtml() {
-		return $this->data['advertisment_code'];
+		if ( ! $this->data['advertisment_code'] ) {
+			return 'You haven\'t yet entered any code for this entry.';
+		} else {
+			return $this->data['advertisment_code'];
+		}
+	}
+	
+	/**
+	 * Set the html code for the advertisment
+	 * 
+	 * @param string $html
+	 * @return boolean
+	 */
+	function setHtml($html) {
+		$this->needsUpdate[] = 'advertisment_code';
+		return $this->data['advertisment_code'] = $html;
 	}
 
 	/**
@@ -53,9 +66,24 @@ class Advertisment {
 	 * @return mixed
 	 */
 	function getName() {
-		return $this->data['advertisment_name'];
+		if ( ! $this->data['advertisment_name'] ) {
+			return 'You haven\'t yet set a name for this entry.';
+		} else {
+			return $this->data['advertisment_name'];
+		}
 	}
 	
+	/**
+	 * Set the name for the advertisment
+	 * 
+	 * @param string $name
+	 * @return boolean
+	 */
+	function setName($name) {
+		$this->needsUpdate[] = 'advertisment_name';
+		return $this->data['advertisment_name'] = $name;
+	}
+
 	/**
 	 * Returns 1 if advertisement is active
 	 * 
@@ -71,11 +99,14 @@ class Advertisment {
 	 * @param mixed $state
 	 * @return mixed
 	 */
-	function setActive( $state ) {
-		if ( $state == true ) {
-			return ( $this->data['advertisment_active'] = 1 && updateDatabase() );
+	function setActive( $state = null ) {
+		$this->needsUpdate[] = 'advertisment_active';
+		if ( $state == null ) {
+			return ( $this->data['advertisment_active'] = ($this->data['advertisment_active'])?0:1 );
+		} elseif ( $state == true ) {
+			return ( $this->data['advertisment_active'] = 1 );
 		} elseif ( $state == false ) {
-			return ( $this->data['advertisment_active'] = 0 && updateDatabase() );
+			return ( $this->data['advertisment_active'] = 0 );
 		} else {
 			return false;
 		}
@@ -88,6 +119,10 @@ class Advertisment {
 		global $wpdb;
 		
 		if ( isset( $this->id ) ) {
+			$sql = $wpdb->prepare(
+				"SELECT COUNT(*)
+				FROM `". $this->table_name ."`
+				WHERE `advertisment_id` = %s;", $this->id );
 			$exists = $wpdb->get_var( $wpdb->prepare(
 				"SELECT COUNT(*)
 				FROM `". $this->table_name ."`
@@ -97,11 +132,12 @@ class Advertisment {
 			$exists = 0;
 		}
 		
-		if ( $exists ) {
+		
+		if ( $exists && $this->needsUpdate ) {
 			$wpdb->update(
 				$this->table_name,
 				$this->data,
-				array('advertisment_id', $this->id)
+				array('advertisment_id' => $this->id)
 			);
 		} else {
 			$wpdb->insert(
@@ -109,7 +145,6 @@ class Advertisment {
 				$this->data
 			);
 		}
-		
 		
 		return ($exists)?true:false;
 	}
