@@ -1,4 +1,5 @@
-<?php 
+<?php
+
 class WAS_Class {
 
 	/**
@@ -9,7 +10,7 @@ class WAS_Class {
 	/**
 	 * Constructor
 	 */
-	function WAS_Class() {
+	function __construct() {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'was_data';
 	}
@@ -25,7 +26,7 @@ class WAS_Class {
 		$ads = $wpdb->get_results( $sql );
 		
 		foreach( $ads as &$ad ) {
-			$ad = new Advertisment($ad->advertisment_id, $this->table_name);
+			$ad = new Advertisment( $ad->advertisment_id );
 		}
 		
 		return $ads;
@@ -39,10 +40,26 @@ class WAS_Class {
 	function addEntry( $entry ) {
 		global $wpdb;
 		
-		$rows_affected = $wpdb->insert( $this->table_name, array(
-			'advertisment_name' => $wpdb->escape( $entry['advertisment_name'] ),
-			'advertisment_code' => $entry['advertisment_code']
-		));
+		$ad = new Advertisment();
+		$ad->setName( $wpdb->escape( $entry['advertisment_name'] ) );
+		$ad->setHtml( $entry['advertisment_code'] );
+		$ad->setActive( ( isset( $entry['advertisment_active'] ) ) ? true : false );
+		$ad->updateDatabase();
+	}
+	
+	/**
+	 * Update an existing db entry
+	 * 
+	 * @param array $entry
+	 */
+	function editEntry( $entry ) {
+		global $wpdb;
+		
+		$ad = new Advertisment( $entry['advertisment_id'] );
+		$ad->setName( $wpdb->escape( $entry['advertisment_name'] ) );
+		$ad->setHtml( $entry['advertisment_code'] );
+		$ad->setActive( ( isset( $entry['advertisment_active'] ) ) ? true : false );
+		$ad->updateDatabase();
 	}
 }
 
