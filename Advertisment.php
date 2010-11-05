@@ -13,7 +13,7 @@ class Advertisment {
 	 * @param int    $id
 	 * @param string $table_name
 	 */
-	function Advertisment( $id = null ) {
+	function __construct( $id = null ) {
 		global $wpdb;
 		
 		$this->table_name = $wpdb->prefix . 'was_data';
@@ -100,13 +100,10 @@ class Advertisment {
 	 * @return mixed
 	 */
 	function setActive( $state = null ) {
-		$this->needsUpdate[] = 'advertisment_active';
-		if ( $state == null ) {
-			return ( $this->data['advertisment_active'] = ($this->data['advertisment_active'])?0:1 );
-		} elseif ( $state == true ) {
-			return ( $this->data['advertisment_active'] = 1 );
+		if ( $state == true ) {
+			return $this->data['advertisment_active'] = 1;
 		} elseif ( $state == false ) {
-			return ( $this->data['advertisment_active'] = 0 );
+			return $this->data['advertisment_active'] = 0;
 		} else {
 			return false;
 		}
@@ -119,10 +116,6 @@ class Advertisment {
 		global $wpdb;
 		
 		if ( isset( $this->id ) ) {
-			$sql = $wpdb->prepare(
-				"SELECT COUNT(*)
-				FROM `". $this->table_name ."`
-				WHERE `advertisment_id` = %s;", $this->id );
 			$exists = $wpdb->get_var( $wpdb->prepare(
 				"SELECT COUNT(*)
 				FROM `". $this->table_name ."`
