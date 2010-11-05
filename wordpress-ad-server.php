@@ -17,16 +17,11 @@ include_once( 'Advertisment.php' );
  * Various tests. This function will be removed when not needed
  */
 function tests() {
-	$test = new Advertisment();
-	$test->setName('Tester');
-	$test->setHtml('<p>something</p>');
-	$test->setActive();
-	var_dump($test);
-	
-	$test1 = new Advertisment(1);
-	$test1->setName('First (again)');
-	$test1->updateDatabase();
-	var_dump($test1);
+	if ( ! empty( $_POST['was-id'] ) ) {
+		was_edit( $_POST['was-id'] );
+	} else {
+		was_new();
+	}
 }
 
 
@@ -43,8 +38,10 @@ function was_settings() {
 	
 	tests();
 	
-	
-	if ( isset( $_POST[ 'advertisment_name' ] ) ) {
+	if ( isset( $_POST['advertisment_id'] ) ) { 
+		$data = $_POST;
+		$ads_class->editEntry($data);
+	} elseif ( isset( $_POST[ 'advertisment_name' ] ) ) {
 		$data = $_POST;
 		$ads_class->addEntry($data);
 	}
@@ -57,22 +54,67 @@ function was_settings() {
 	<div class="wrap">
 		<h2><?php _e('Wordpress Ad Server'); ?></h2>
 		<h3><?php _e('All Database Entries'); ?></h3>
-		<dl>
+		<table class="widefat post fixed" cellspacing="0">
+			<thead>
+				<tr>
+					<th scope="col" class="manage-column column-cb check-column" style=""><input type="checkbox" /></th>
+					<th scope="col" class="manage-column column-title"><?php _e('Name'); ?></th>
+					<th scope="col" class="manage-column column-active"><?php _e('Active'); ?></th>
+				</tr>
+			</thead>
+			
+			<tfoot>
+				<tr>
+					<th scope="col" class="manage-column column-cb check-column" style=""><input type="checkbox" /></th>
+					<th scope="col" class="manage-column column-title"><?php _e('Name'); ?></th>
+					<th scope="col" class="manage-column column-active"><?php _e('Active'); ?></th>
+				</tr>
+			</tfoot>
+			
+			<tbody>
 <?php
 	foreach( $ads_class->getEntries() as $ad ) {
+		$act = $ad->isActive();
 ?>
-			<dt>
-				<?php echo $ad->getName() ?>
-				<span style="font-size:smaller;color:<?php echo ( $ad->isActive() ) ? 'green' : 'red'; ?>">[<?php echo ( $ad->isActive() ) ? 'active' : 'inactive'; ?>]</span>
-			</dt>
-			<dd><code><?php echo htmlentities($ad->getHtml())  ?></code></dd>
+				<tr>
+					<th scope="row" class="check-column">
+						<input type="checkbox" name="was-ids[]" value="<?php echo $ad->id; ?>" />
+					</th>
+					<td class="post-title column-title">
+						<strong>
+							<a class="row-title">
+								<?php echo $ad->getName() ?>
+							</a>
+						</strong>
+						<div class="row-actions">
+							<span class="edit">
+								<a href="admin.php?page=was-settings&was-id=<?php echo $ad->id ?>">
+									<?php _e('Edit'); ?>
+								</a> | 
+							</span>
+							<span class="trash">
+								<a class="submitdelete" href="" title="">
+									<?php _e('Delete'); ?>
+								</a> | 
+							</span>
+							<span class="edit">
+								<a href="" id="post-preview" target="wp-preview" tabindex="4">
+									<?php _e('Preview'); ?>
+								</a>
+							</span>
+						</div>
+					</td>
+					<td style="font-size:smaller;color:<?php echo ( $act ) ? 'green' : 'red'; ?>">
+						[<?php echo ( $act ) ? 'active' : 'inactive'; ?>]
+					</td>
+		<!-- <code><?php echo htmlentities( $ad->getHtml() )  ?></code> -->
 <?php
 	}
 ?>
-		</dl>
-	</div>
+			</tbody>
+		</table>
+</div>
 <?php
-	was_new();
 }
 
 
@@ -88,7 +130,7 @@ function was_new() {
 ?>
 	<div class="new-entry">
 		<h3><?php _e('Add New Entry'); ?></h3>
-		<form method="post">
+		<form method="post" action="admin.php?page=was-settings">
 			<label for="advertisment_name">Name</label>
 			<input type="text" id="advertisment_name" name="advertisment_name" />
 			<br />
@@ -98,7 +140,7 @@ function was_new() {
 			<label for="advertisment_active">Active</label>
 			<input type="checkbox" id="advertisment_active" name="advertisment_active" />
 			<br />
-			<button type="submit">Create</button>
+			<button class="button-primary" type="submit">Create</button>
 		</form>
 	</div>
 <?php	
@@ -113,7 +155,8 @@ function was_edit($id) {
 ?>
 	<div class="edit-entry">
 		<h3><?php _e('Edit Entry'); ?></h3>
-		<form method="post">
+		<form method="post" action="admin.php?page=was-settings">
+			<input type="hidden" name="advertisment_id" value="<?php echo $ad->id ?>" />
 			<label for="advertisment_name">Name</label>
 			<input type="text" id="advertisment_name" name="advertisment_name" value="<?php echo $ad->getName() ?>" />
 			<br />
@@ -123,7 +166,7 @@ function was_edit($id) {
 			<label for="advertisment_active">Active</label>
 			<input type="checkbox" id="advertisment_active" name="advertisment_active" <?php echo ($ad->isActive())?'checked="checked" ':'' ?>/>
 			<br />
-			<button type="submit">Update</button>
+			<button class="button-primary" type="submit">Update</button>
 		</form>
 	</div>
 <?php
@@ -189,8 +232,12 @@ register_activation_hook( __FILE__, 'was_install' );
  * @since 0.1
  */
 function was_menu() {
-	if (function_exists('add_menu_page')) {
+	if ( function_exists( 'add_menu_page' ) ) {
 		add_menu_page( __('Wordpress Ad Server'), __('Wordpress Ad Server'), 'edit_theme_options', 'was-settings', 'was_settings' );
+		
+		if ( function_exists( 'add_submenu_page' ) ) {
+			add_submenu_page( 'was-settings', __('Add New Entry'), __('New Entry'), 'edit_themes', 'was-new', 'was_new' );
+		}
 	}
 }
 
