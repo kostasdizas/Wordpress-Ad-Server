@@ -31,8 +31,10 @@ class WAS_Class {
 			$where = ' WHERE `advertisment_active` = 0';
 		} elseif ( $state == 'all' ) {
 			$where = '';
+		} else {
+			$where = '';
 		}
-		$sql = "SELECT `advertisment_id` FROM `". $this->table_name ."` ORDER BY `advertisment_id` ASC";
+		$sql = "SELECT `advertisment_id` FROM `". $this->table_name ."`". $where ." ORDER BY `advertisment_id` ASC";
 		$ads = $wpdb->get_results( $sql );
 		
 		if ( $method == 'object' ) {
