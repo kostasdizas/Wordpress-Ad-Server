@@ -111,6 +111,16 @@ class WAS_Class {
 		$ad->setActive( ( isset( $entry['advertisment_active'] ) ) ? true : false );
 		$ad->updateDatabase();
 	}
+	
+	/**
+	 * Delete an entry from the database
+	 *
+	 * @param int $id
+	 */
+	function deleteEntry( $id ) {
+		$ad = new Advertisment( $id );
+		$ad->delete();
+	}
 }
 
 ?>
