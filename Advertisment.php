@@ -97,17 +97,22 @@ class Advertisment {
 	/**
 	 * Changes the advertisment state to 0 or 1
 	 * 
-	 * @param bool $state
+	 * @param bool $state   
+	 * @param bool $update  allows for quick status toggling
 	 * @return bool
 	 */
-	function setActive( $state = null ) {
+	function setActive( $state = null, $update = false ) {
 		if ( $state == true ) {
-			return $this->data['advertisment_active'] = 1;
+			$this->data['advertisment_active'] = 1;
 		} elseif ( $state == false ) {
-			return $this->data['advertisment_active'] = 0;
+			$this->data['advertisment_active'] = 0;
 		} else {
 			return false;
 		}
+		$this->needsUpdate[] = 'advertisment_active';
+		if ( $update )
+			$this->updateDatabase();
+		return true;
 	}	
 	
 	/**
@@ -146,12 +151,11 @@ class Advertisment {
 			$exists = 0;
 		}
 		
-		
 		if ( $exists && $this->needsUpdate ) {
 			$wpdb->update(
 				$this->table_name,
 				$this->data,
-				array('advertisment_id' => $this->id)
+				array( 'advertisment_id' => $this->id )
 			);
 		} else {
 			$wpdb->insert(
@@ -161,6 +165,18 @@ class Advertisment {
 		}
 		
 		return ($exists)?true:false;
+	}
+	
+	/**
+	 * Delete this Advertisment
+	 */
+	function delete() {
+		global $wpdb;
+		$wpdb->query( $wpdb->prepare(
+			"DELETE FROM `". $this->table_name ."`
+			WHERE `advertisment_id` = %s", $this->id )
+		);
+		return true;
 	}
 }
 
