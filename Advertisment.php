@@ -25,12 +25,13 @@ class Advertisment {
 				'advertisment_name' => null,
 				'advertisment_code' => null,
 				'advertisment_weight' => null,
+				'advertisment_size' => null,
 				'advertisment_active' => null
 			);
 		} else {
 			$this->data = (array) $wpdb->get_row( $wpdb->prepare(
 				"SELECT `advertisment_name`,
-				`advertisment_code`, `advertisment_active`, `advertisment_weight`
+				`advertisment_code`, `advertisment_active`, `advertisment_weight`, `advertisment_size`
 				FROM `". $this->table_name ."`
 				WHERE `advertisment_id` = %s", $this->id)
 			);
@@ -133,6 +134,27 @@ class Advertisment {
 	function setWeight( $weight = null ) {
 		$this->needsUpdate[] = 'advertisment_weight';
 		return $this->data['advertisment_weight'] = $weight;
+	}
+	
+	/**
+	 * Returns the size of the advertisment
+	 * 
+	 * @return string
+	 */
+	function getSize() {
+		return $this->data['advertisment_size'];
+	}
+	
+	/**
+	 * Set the size for the advertisment
+	 * 
+	 * @param string $size
+	 * @return bool
+	 */
+	function setSize( $size = '125x125' ) {
+		$this->needsUpdate[] = 'advertisment_size';
+		$this->data['advertisment_size'] = $size;
+		return true;
 	}
 
 	/**
