@@ -21,9 +21,11 @@ class WAS_Class {
 	 * 
 	 * @param string $state     (all|active|inactive)
 	 * @param string $method    (object|count)
+	 * @param int $entries
+	 * @param int $offset
 	 * @return array|int
 	 */
-	function getEntries( $state = 'all', $method = 'object' ) {
+	function getEntries( $state = 'all', $method = 'object', $entries = 10, $page = 1 ) {
 		global $wpdb;
 		if ( $state == 'active' ) {
 			$where = ' WHERE `advertisment_active` = 1';
@@ -34,7 +36,18 @@ class WAS_Class {
 		} else {
 			$where = '';
 		}
-		$sql = "SELECT `advertisment_id` FROM `". $this->table_name ."`". $where ." ORDER BY `advertisment_id` ASC";
+		
+		if ( $method != 'count' ) {
+			if ( empty( $entries ) || $entries < 1 )
+				$entries = 10;
+			if ( empty( $page ) || $page < 1 )
+				$page = 1;
+			$limit = " LIMIT ". ( ( $page - 1 ) * $entries ) .",". $entries;
+		} else {
+			$limit = '';
+		}
+		
+		$sql = "SELECT `advertisment_id` FROM `". $this->table_name ."`". $where ." ORDER BY `advertisment_id` ASC". $limit;
 		$ads = $wpdb->get_results( $sql );
 		
 		if ( $method == 'object' ) {
@@ -92,6 +105,7 @@ class WAS_Class {
 		$ad->setName( $wpdb->escape( $entry['advertisment_name'] ) );
 		$ad->setHtml( $entry['advertisment_code'] );
 		$ad->setWeight( $entry['advertisment_weight'] );
+		$ad->setSize( $entry['advertisment_size'] );
 		$ad->setActive( ( isset( $entry['advertisment_active'] ) ) ? true : false );
 		$ad->updateDatabase();
 	}
@@ -108,6 +122,7 @@ class WAS_Class {
 		$ad->setName( $wpdb->escape( $entry['advertisment_name'] ) );
 		$ad->setHtml( $entry['advertisment_code'] );
 		$ad->setWeight( $entry['advertisment_weight'] );
+		$ad->setSize( $entry['advertisment_size'] );
 		$ad->setActive( ( isset( $entry['advertisment_active'] ) ) ? true : false );
 		$ad->updateDatabase();
 	}
@@ -120,6 +135,21 @@ class WAS_Class {
 	function deleteEntry( $id ) {
 		$ad = new Advertisment( $id );
 		$ad->delete();
+	}
+	
+	/**
+	 * Get the distinct advertisment sizes from the database
+	 * 
+	 * @param string $state
+	 * 
+	 * @return array
+	 */
+	function getSizes( $state = 'all' ) {
+		global $wpdb;
+		
+		$sizes = $wpdb->get_col( "SELECT DISTINCT `advertisment_size` FROM `". $this->table_name ."` WHERE `advertisment_size` != '';" );
+		
+		return $sizes;
 	}
 }
 
