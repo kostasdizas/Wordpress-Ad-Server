@@ -40,6 +40,7 @@ function was_uninstall_options() {
 	
 	// Delete all the defined options
 	delete_option( 'was_db_version' );
+	delete_option( 'was_show_per_page' );
 }
 
 was_uninstall_db();
