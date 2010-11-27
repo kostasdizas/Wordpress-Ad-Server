@@ -22,6 +22,7 @@ class Advertisment {
 		
 		if ($id == null) {
 			$this->data = array(
+				'advertisment_vendor' => null,
 				'advertisment_name' => null,
 				'advertisment_code' => null,
 				'advertisment_weight' => null,
@@ -30,7 +31,7 @@ class Advertisment {
 			);
 		} else {
 			$this->data = (array) $wpdb->get_row( $wpdb->prepare(
-				"SELECT `advertisment_name`,
+				"SELECT `advertisment_name`, `advertisment_vendor`,
 				`advertisment_code`, `advertisment_active`, `advertisment_weight`, `advertisment_size`
 				FROM `". $this->table_name ."`
 				WHERE `advertisment_id` = %s", $this->id)
@@ -84,6 +85,30 @@ class Advertisment {
 	function setName( $name = null ) {
 		$this->needsUpdate[] = 'advertisment_name';
 		return $this->data['advertisment_name'] = $name;
+	}
+	
+	/**
+	 * Returns the advertisment's vendor name
+	 * 
+	 * @return string
+	 */
+	function getVendor() {
+		if ( ! $this->data['advertisment_vendor'] ) {
+			return 'No Vendor';
+		} else {
+			return $this->data['advertisment_vendor'];
+		}
+	}
+	
+	/**
+	 * Set the advertisment's vendor name
+	 * 
+	 * @param string $vendor
+	 * @return bool
+	 */
+	function setVendor( $vendor = null ) {
+		$this->needsUpdate[] = 'advertisment_vendor';
+		return $this->data['advertisment_vendor'] = $vendor;
 	}
 	
 	/**
