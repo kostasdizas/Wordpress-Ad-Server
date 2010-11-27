@@ -99,6 +99,9 @@ function was_manage() {
 			$sendback = remove_query_arg( array('delete', 'id'), wp_get_referer() );
 			$sendback = add_query_arg( array('page' => 'was-manage'), $sendback );
 			
+			if ( ! check_admin_referer('was-delete_' . $_GET['id']) )
+				wp_die( __('Cheating?') );
+			
 			if ( ! $ads_class->deleteEntry( $_GET['id'] ) )
 				wp_die( __('Error in deleting...') );
 			$sendback = add_query_arg( array(
@@ -162,9 +165,14 @@ function was_list() {
 	$ads_class = new WAS_Class();
 	
 	$view = isset( $_GET['view'] ) ? $_GET['view'] : 'all';
-	
 	if ( ! ( $view == 'all' || $view == 'active' || $view == 'inactive' ) )
 		$view = 'all';
+	
+	$vendor = isset($_GET['vendor']) ? $_GET['vendor'] : 'all';
+	
+	$size = isset($_GET['size']) ? $_GET['size'] : 'all';
+
+	
 	
 	$pagenum = isset( $_GET['paged'] ) ? absint( $_GET['paged'] ) : 0;
 	
@@ -175,7 +183,7 @@ function was_list() {
 	if ( empty( $per_page ) || $per_page < 1 )
 		$per_page = 10;
 	
-	$entry_count = $ads_class->getEntries( $view, 'count', 'all' );
+	$entry_count = $ads_class->getEntries( 'state='. $view .'&return=count&entries=all' );
 	
 	$num_pages = ceil($entry_count / $per_page);
 	
@@ -221,7 +229,7 @@ function was_list() {
 				<a href="admin.php?page=was-manage"<?php echo ($view=='all')?' class="current"':''; ?>>
 					<?php _e('All') ?>
 					<span class="count">
-						(<?php echo $ads_class->getEntries( 'all', 'count' ); ?>)
+						(<?php echo $ads_class->getEntries( 'view=all&return=count' ); ?>)
 					</span>
 				</a>
 			</li> |
@@ -229,7 +237,7 @@ function was_list() {
 				<a href="admin.php?page=was-manage&view=active"<?php echo ($view=='active')?' class="current"':''; ?>>
 					<?php _e('Active') ?>
 					<span class="count">
-						(<?php echo $ads_class->getEntries( 'active', 'count' ); ?>)
+						(<?php echo $ads_class->getEntries( 'view=active&return=count' ); ?>)
 					</span>
 				</a>
 			</li> |
@@ -237,13 +245,13 @@ function was_list() {
 				<a href="admin.php?page=was-manage&view=inactive"<?php echo ($view=='inactive')?' class="current"':''; ?>>
 					<?php _e('Inactive') ?>
 					<span class="count">
-						(<?php echo $ads_class->getEntries( 'inactive', 'count' ); ?>)
+						(<?php echo $ads_class->getEntries( 'view=inactive&return=count' ); ?>)
 					</span>
 				</a>
 			</li>			
 		</ul>
 		
-		<form action="" method="get">
+		<form action="" return="get">
 			<input type="hidden" name="page" value="was-manage" />
 <?php
 if ( function_exists( 'wp_nonce_field' ) )
@@ -261,12 +269,18 @@ if ( function_exists( 'wp_nonce_field' ) )
 					<input type="submit" value="<?php esc_attr_e('Apply'); ?>" name="doaction" id="doaction" class="button-secondary action" />
 				</div>
 				<div class="alignleft actions">
-<?php $size = isset($_GET['size']) ? (int)$_GET['size'] : 0; ?>
+					<select name="vendor" id="vendor" class="postform">
+						<option<?php selected( $vendor, 'all' ) ?> value="all">Show all vendors</option>
+<?php
+	foreach( $ads_class->getVendors() as $vvendor ) :
+?>
+						<option<?php selected( $vendor, $vvendor); ?> value="<?php echo $vvendor ?>"><?php echo $vvendor ?></option>
+<?php endforeach; ?>
+					</select>
 					<select name="size" id="size" class="postform">
-						<option<?php selected( $size, 0 ) ?> value="0">Show all sizes</option>
+						<option<?php selected( $size, 'all' ) ?> value="all">Show all sizes</option>
 <?php
 	foreach( $ads_class->getSizes() as $ssize ) :
-		$default = ( $size == $ssize ) ? ' selected="selected"' : '';
 ?>
 						<option<?php selected( $size, $ssize); ?> value="<?php echo $ssize ?>"><?php echo $ssize ?></option>
 <?php endforeach; ?>
@@ -294,6 +308,7 @@ if ( function_exists( 'wp_nonce_field' ) )
 					<tr>
 						<th scope="col" class="manage-column column-cb check-column" style=""><input type="checkbox" /></th>
 						<th scope="col" class="manage-column column-title"><?php _e('Name'); ?></th>
+						<th scope="col" class="manage-column column-vendor"><?php _e('Vendor'); ?></th>
 						<th scope="col" class="manage-column column-active"><?php _e('Active'); ?></th>
 						<th scope="col" class="manage-column column-size"><?php _e('Size'); ?></th>
 						<th scope="col" class="manage-column column-weight"><?php _e('Weight'); ?></th>
@@ -304,6 +319,7 @@ if ( function_exists( 'wp_nonce_field' ) )
 					<tr>
 						<th scope="col" class="manage-column column-cb check-column" style=""><input type="checkbox" /></th>
 						<th scope="col" class="manage-column column-title"><?php _e('Name'); ?></th>
+						<th scope="col" class="manage-column column-vendor"><?php _e('Vendor'); ?></th>
 						<th scope="col" class="manage-column column-active"><?php _e('Active'); ?></th>
 						<th scope="col" class="manage-column column-size"><?php _e('Size'); ?></th>
 						<th scope="col" class="manage-column column-weight"><?php _e('Weight'); ?></th>
@@ -312,11 +328,18 @@ if ( function_exists( 'wp_nonce_field' ) )
 				
 				<tbody>
 <?php
-	foreach( $ads_class->getEntries( $view, 'object', $per_page, $pagenum ) as $index => $ad ) :
+	$args = array(
+		'view' => $view,
+		'entries' => $per_page,
+		'paged' => $pagenum,
+		'vendor' => $vendor,
+		'size' => $size
+	);
+	foreach( $ads_class->getEntries( $args ) as $index => $ad ) :
 		$act = $ad->isActive();
 		$even = ($index&1) ? false : true;
 ?>
-					<tr<?php echo ($even)?' class="alternate"':'' ?>>
+					<tr<?php echo (!$act)?' class="alternate"':'' ?>>
 						<th scope="row" class="check-column">
 							<input type="checkbox" name="was-ids[]" value="<?php echo $ad->id; ?>" />
 						</th>
@@ -338,11 +361,18 @@ if ( function_exists( 'wp_nonce_field' ) )
 									</a> | 
 								</span>
 								<span class="delete">
-									<a class="submitdelete" href="admin.php?page=was-manage&action=delete&id=<?php echo $ad->id ?>" title="Delete this Entry">
+<?php
+	$del_link = 'admin.php?page=was-manage&amp;action=delete&amp;id='. $ad->id;
+	$del_link = ( function_exists('wp_nonce_url') ) ? wp_nonce_url($del_link, 'was-delete_' . $ad->id) : $del_link;
+?>
+									<a class="submitdelete" href="<?php echo $del_link ?>" title="Delete this Entry">
 										<?php _e('Delete'); ?>
 									</a>
 								</span>
 							</div>
+						</td>
+						<td class="column-vendor">
+							<?php echo $ad->getVendor(); ?>
 						</td>
 						<td style="color:<?php echo ( $act ) ? 'green' : 'red'; ?>">
 							&#x25CF;
@@ -406,33 +436,110 @@ function was_edit( $id ) {
 	<div class="wrap edit-entry">
 		<h2><?php _e('Wordpress Ad Server'); ?></h2>
 		<h3><?php _e('Edit Entry'); ?></h3>
-		<form method="post" action="admin.php?page=was-manage">
+		<form return="post" action="admin.php?page=was-manage">
 <?php
 if ( function_exists( 'wp_nonce_field' ) )
 	wp_nonce_field( 'was-list-form' );
 ?>
 			<input type="hidden" name="advertisment_id" value="<?php echo $ad->id ?>" />
+			<table class="form-table">
+				<tr valign="top">
+					<th scope="row">Name</th>
+					<td><input type="text" id="advertisment_name" name="advertisment_name" value="<?php echo $ad->getName() ?>" /></td>
+				</tr>
+				
+				<tr valing="top">
+					<th scope="row">Vendor</th>
+					<td><input type="text" id="advertisment_vendor" name="advertisment_vendor" value="<?php echo $ad->getVendor() ?>" /></td>
+				</tr>
+				
+				<tr valing="top">
+					<th scope="row">Code</th>
+					<td><textarea id="advertisment_code" name="advertisment_code"><?php echo stripslashes( $ad->getHtml() ) ?></textarea></td>
+				</tr>
+				
+				<tr valing="top">
+					<th scope="row">Active</th>
+					<td><input type="checkbox" id="advertisment_active" name="advertisment_active" <?php echo ($ad->isActive())?'checked="checked" ':'' ?>/></td>
+				</tr>
+				
+				<tr valing="top">
+					<th scope="row">Weight</th>
+					<td><input type="text" id="advertisment_weight" name="advertisment_weight" value="<?php echo $ad->getWeight() ?>" /></td>
+				</tr>
+				
+				<tr valing="top">
+					<th scope="row">Size</th>
+					<td><input type="text" id="advertisment_size" name="advertisment_size" value="<?php echo $ad->getSize() ?>" /></td>
+				</tr>
+			</table>
+			<p class="submit">
+				<input type="submit" class="button-primary" value="<?php _e('Save Changes') ?>" />
+			</p>
+			
+			<p>Using Labels (need to research on the effect of &lt;th scope="row"&gt; versus &lt;label&gt; on accessibility, ie. screen readers):</p>
 			<label for="advertisment_name">Name</label>
-			<input type="text" id="advertisment_name" name="advertisment_name" value="<?php echo $ad->getName() ?>" />
-			<br />
-			<label for="advertisment_code">Code</label>
-			<textarea id="advertisment_code" name="advertisment_code"><?php echo stripslashes( $ad->getHtml() ) ?></textarea>
-			<br />
-			<label for="advertisment_active">Active</label>
-			<input type="checkbox" id="advertisment_active" name="advertisment_active" <?php echo ($ad->isActive())?'checked="checked" ':'' ?>/>
-			<br />
-			<label for="advertisment_weight">Weight</label>
-			<input type="text" id="advertisment_weight" name="advertisment_weight" value="<?php echo $ad->getWeight() ?>" />
-			<br />
-			<label for="advertisment_size">Size</label>
-			<input type="text" id="advertisment_size" name="advertisment_size" value="<?php echo $ad->getSize() ?>" />
-			<br />
-			<button class="button-primary" type="submit">Update</button>
+			<input disabled="disabled" type="text" id="advertisment_name" name="advertisment_name" value="<?php echo $ad->getName() ?>" />
+			<button disabled="disabled" class="button-primary" type="submit">Update</button>
 		</form>
 	</div>
 <?php
 }
 
+/**
+ * Plugin Settings Page
+ * 
+ * @since 0.1
+ */
+function was_settings() {
+?>
+	<div class="wrap">
+		<h2><?php _e( 'Wordpress Ad Server' ); ?></h2>
+		<h3><?php _e( 'Settings' ); ?></h3>
+		
+		<form return="post" action="options.php">
+		<?php settings_fields( 'was-settings-group' ); ?>
+			<h4><?php _e( 'Global Settings' ); ?></h4>
+			
+			<table class="form-table">
+				
+				<tr valign="top">
+					<th scope="row">Some Options</th>
+					<td><input type="text" name="was_one" value="<?php echo get_option('was_one'); ?>" /></td>
+				</tr>
+				
+			</table>
+			
+			<h4><?php _e( 'Personal Settings' ); ?></h4>
+			
+			<table class="form-table">
+			
+				<tr valign="top">
+					<th scope="row">Advertisments Per Page</th>
+					<td><input type="text" name="was_show_per_page" value="<?php echo get_user_option('was_show_per_page'); ?>" /></td>
+				</tr>
+				
+			</table>
+			
+			<p class="submit">
+				<input type="submit" class="button-primary" value="<?php _e('Save Changes') ?>" />
+			</p>
+		
+		</form>
+
+	</div>
+<?php
+}
+function was_register_settings() {
+	register_setting( 'was-settings-group', 'was_one' );
+	register_setting( 'was-settings-group', 'was_show_per_page', 'was_show_per_page_save' );
+}
+function was_show_per_page_save( $input ) {
+	$user = wp_get_current_user();
+	update_user_option( $user->id, 'was_show_per_page', $input );
+	$input = get_option( 'was_show_per_page' );
+	return $input;
+}
 
 /**
  * Shortcode [was id=""]
@@ -476,6 +583,7 @@ function was_install() {
 		$sql = "CREATE TABLE `". $table_name ."` (
 			`advertisment_id` int(11) NOT NULL AUTO_INCREMENT,
 			`advertisment_active` int(11) DEFAULT '1' NOT NULL,
+			`advertisment_vendor` varchar(200) DEFAULT '' NOT NULL,
 			`advertisment_name` varchar(200) DEFAULT '' NOT NULL,
 			`advertisment_code` text NOT NULL,
 			`advertisment_weight` int(11) DEFAULT '1' NOT NULL,
@@ -510,8 +618,11 @@ function was_menu() {
 		
 		if ( function_exists( 'add_submenu_page' ) ) {
 			add_submenu_page( 'was-manage', __('Add New Entry'), __('New Entry'), 'edit_themes', 'was-new', 'was_edit' );
+
+			add_submenu_page( 'was-manage', __('Settings'), __('Settings'), 'edit_themes', 'was-settings', 'was_settings' );
 		}
 	}
+	add_action( 'admin_init', 'was_register_settings' );
 }
 
 add_action('admin_menu', 'was_menu');
