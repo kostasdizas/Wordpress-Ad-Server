@@ -19,14 +19,25 @@ class WAS_Class {
 	 * Get all entries from the db table
 	 * 
 	 * 
-	 * @param string $state     (all|active|inactive)
-	 * @param string $method    (object|count)
-	 * @param int $entries
-	 * @param int $offset
+	 * @param string|array $args
 	 * @return array|int
 	 */
-	function getEntries( $state = 'all', $method = 'object', $entries = 10, $page = 1 ) {
+	function getEntries( $args ) {
 		global $wpdb;
+		
+		$default_args = array (
+			'state' => 'all',
+			'vendor' => 'all',
+			'size' => 'all',
+			'entries' => 10,
+			'paged' => 1,
+			'return' => 'object'
+		);
+		
+		$args = wp_parse_args( $args, $default_args );
+		
+		extract( $args, EXTR_SKIP );
+		
 		if ( $state == 'active' ) {
 			$where = ' WHERE `advertisment_active` = 1';
 		} elseif ( $state == 'inactive' ) {
@@ -37,30 +48,39 @@ class WAS_Class {
 			$where = '';
 		}
 		
-		if ( $method != 'count' ) {
+		if ( $vendor != $default_args['vendor'] ) {
+			$where = ( $where == '' ) ? ' WHERE ' : $where . ' AND '; 
+			$where .= $wpdb->prepare( '`advertisment_vendor` = %s', $vendor );
+		}
+		
+		if ( $size != $default_args['size'] ) {
+			$where = ( $where == '' ) ? ' WHERE ' : $where . ' AND '; 
+			$where .= $wpdb->prepare( '`advertisment_size` = %s', $size );
+		}
+		
+		if ( $return != 'count' ) {
 			if ( empty( $entries ) || $entries < 1 )
 				$entries = 10;
-			if ( empty( $page ) || $page < 1 )
-				$page = 1;
-			$limit = " LIMIT ". ( ( $page - 1 ) * $entries ) .",". $entries;
+			if ( empty( $paged ) || $paged < 1 )
+				$paged = 1;
+			$limit = " LIMIT ". ( ( $paged - 1 ) * $entries ) .",". $entries;
 		} else {
 			$limit = '';
 		}
 		
 		$sql = "SELECT `advertisment_id` FROM `". $this->table_name ."`". $where ." ORDER BY `advertisment_id` ASC". $limit;
-		$ads = $wpdb->get_results( $sql );
+		$ads = $wpdb->get_col( $sql );
 		
-		if ( $method == 'object' ) {
+		if ( $return == 'object' ) {
 			foreach( $ads as &$ad ) {
-				$ad = new Advertisment( $ad->advertisment_id );
+				$ad = new Advertisment( $ad );
 			}
 			return $ads;
-		} elseif ( $method == 'count' ) {
-			return count( $ads );
+		} elseif ( $return == 'count' ) {
+			return $wpdb->num_rows;
 		} else {
 			return false;
 		}
-		
 	}
 	
 	/**
@@ -103,6 +123,7 @@ class WAS_Class {
 		
 		$ad = new Advertisment();
 		$ad->setName( $wpdb->escape( $entry['advertisment_name'] ) );
+		$ad->setVendor( $wpdb->escape( $entry['advertisment_vendor'] ) );
 		$ad->setHtml( $entry['advertisment_code'] );
 		$ad->setWeight( $entry['advertisment_weight'] );
 		$ad->setSize( $entry['advertisment_size'] );
@@ -120,6 +141,7 @@ class WAS_Class {
 		
 		$ad = new Advertisment( $entry['advertisment_id'] );
 		$ad->setName( $wpdb->escape( $entry['advertisment_name'] ) );
+		$ad->setVendor( $wpdb->escape( $entry['advertisment_vendor'] ) );
 		$ad->setHtml( $entry['advertisment_code'] );
 		$ad->setWeight( $entry['advertisment_weight'] );
 		$ad->setSize( $entry['advertisment_size'] );
@@ -151,6 +173,22 @@ class WAS_Class {
 		
 		return $sizes;
 	}
+	
+	/**
+	 * Get the distinct vendors from the database
+	 * 
+	 * @param string $state
+	 * 
+	 * @return array
+	 */
+	function getVendors( $state = 'all' ) {
+		global $wpdb;
+		
+		$vendors = $wpdb->get_col( "SELECT DISTINCT `advertisment_vendor` FROM`". $this->table_name ."` WHERE `advertisment_vendor` != '';" );
+		
+		return $vendors;
+	}
+
 }
 
 ?>
