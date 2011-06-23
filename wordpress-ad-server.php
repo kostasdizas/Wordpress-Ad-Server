@@ -30,6 +30,19 @@ function was_manage() {
 	
 	$ads_class = new WAS_Class();
 	
+	if ( isset( $_GET['post-query-submit'] ) ) {
+		$sendback = remove_query_arg( array( 'post-query-submit' ), wp_get_referer() );
+		$sendback = add_query_arg( array( 'page' => 'was-manage' ), $sendback );
+		if ( $_GET['vendor'] != 'all' )
+			$sendback = add_query_arg( array( 'vendor' => $_GET['vendor'] ), $sendback );
+		if ( $_GET['size'] != 'all' )
+			$sendback = add_query_arg( array( 'size' => $_GET['size'] ), $sendback );
+?>
+		<script type="text/javascript"> window.location='<?php echo $sendback; ?>'; </script>
+<?php
+		exit();
+	}
+	
 	if ( isset($_GET['doaction']) || isset($_GET['doaction2']) ) {
 		$sendback = remove_query_arg( array('activated', 'deactivated', 'deleted', 'ids'), wp_get_referer() );
 		$sendback = add_query_arg( array('page' => 'was-manage'), $sendback );
@@ -198,6 +211,7 @@ function was_list() {
 	
 ?>
 	<div class="wrap">
+		<div id="icon-edit" class="icon32"><br /></div>
 		<h2>
 			<?php _e('Wordpress Ad Server'); ?>
 			<a href="admin.php?page=was-new" class="button add-new-h2"><?php _e('Add New Entry') ?></a>
@@ -254,8 +268,18 @@ function was_list() {
 		<form action="" return="get">
 			<input type="hidden" name="page" value="was-manage" />
 <?php
-if ( function_exists( 'wp_nonce_field' ) )
-	wp_nonce_field( 'was-list-form' );
+$args = array(
+	'view' => $view,
+	'entries' => $per_page,
+	'paged' => $pagenum,
+	'vendor' => $vendor,
+	'size' => $size
+);
+$entries = $ads_class->getEntries( $args );
+if ( $entries ) :
+
+	if ( function_exists( 'wp_nonce_field' ) )
+		wp_nonce_field( 'was-list-form' );
 ?>
 			
 			<div class="tablenav">
@@ -328,16 +352,9 @@ if ( function_exists( 'wp_nonce_field' ) )
 				
 				<tbody>
 <?php
-	$args = array(
-		'view' => $view,
-		'entries' => $per_page,
-		'paged' => $pagenum,
-		'vendor' => $vendor,
-		'size' => $size
-	);
-	foreach( $ads_class->getEntries( $args ) as $index => $ad ) :
+	foreach( $entries as $index => $ad ) :
 		$act = $ad->isActive();
-		$even = ($index&1) ? false : true;
+		// $even = ($index&1) ? false : true;
 ?>
 					<tr<?php echo (!$act)?' class="alternate"':'' ?>>
 						<th scope="row" class="check-column">
@@ -416,8 +433,15 @@ if ( function_exists( 'wp_nonce_field' ) )
 				</div>
 				<br class="clear" />
 			</div>
+<?php
+else:
+?>
+			<br class="clear" />
+			<p><?php _e( 'No entries found.' ); ?></p>
+<?php
+endif;
+?>
 		</form>
-		
 	</div>
 <?php
 }
@@ -434,9 +458,10 @@ function was_edit( $id ) {
 	$ad = new Advertisment($id);
 ?>
 	<div class="wrap edit-entry">
+		<div id="icon-edit" class="icon32"><br /></div>
 		<h2><?php _e('Wordpress Ad Server'); ?></h2>
 		<h3><?php _e('Edit Entry'); ?></h3>
-		<form return="post" action="admin.php?page=was-manage">
+		<form method="post" action="admin.php?page=was-manage">
 <?php
 if ( function_exists( 'wp_nonce_field' ) )
 	wp_nonce_field( 'was-list-form' );
@@ -494,17 +519,18 @@ if ( function_exists( 'wp_nonce_field' ) )
 function was_settings() {
 ?>
 	<div class="wrap">
+		<div id="icon-edit" class="icon32"><br /></div>
 		<h2><?php _e( 'Wordpress Ad Server' ); ?></h2>
 		<h3><?php _e( 'Settings' ); ?></h3>
 		
-		<form return="post" action="options.php">
+		<form method="post" action="options.php">
 		<?php settings_fields( 'was-settings-group' ); ?>
 			<h4><?php _e( 'Global Settings' ); ?></h4>
 			
 			<table class="form-table">
 				
 				<tr valign="top">
-					<th scope="row">Some Options</th>
+					<th scope="row"><?php _e( 'Some Options' ); ?></th>
 					<td><input type="text" name="was_one" value="<?php echo get_option('was_one'); ?>" /></td>
 				</tr>
 				
@@ -515,7 +541,7 @@ function was_settings() {
 			<table class="form-table">
 			
 				<tr valign="top">
-					<th scope="row">Advertisments Per Page</th>
+					<th scope="row"><?php _e( 'Advertisments Per Page' ); ?></th>
 					<td><input type="text" name="was_show_per_page" value="<?php echo get_user_option('was_show_per_page'); ?>" /></td>
 				</tr>
 				

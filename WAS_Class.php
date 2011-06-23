@@ -26,7 +26,7 @@ class WAS_Class {
 		global $wpdb;
 		
 		$default_args = array (
-			'state' => 'all',
+			'view' => 'all',
 			'vendor' => 'all',
 			'size' => 'all',
 			'entries' => 10,
@@ -38,14 +38,11 @@ class WAS_Class {
 		
 		extract( $args, EXTR_SKIP );
 		
-		if ( $state == 'active' ) {
-			$where = ' WHERE `advertisment_active` = 1';
-		} elseif ( $state == 'inactive' ) {
-			$where = ' WHERE `advertisment_active` = 0';
-		} elseif ( $state == 'all' ) {
-			$where = '';
-		} else {
-			$where = '';
+		$where = '';
+		
+		if ( $view != $default_args['view'] ) {
+			$where = ( $where == '' ) ? ' WHERE ' : $where . ' AND '; 
+			$where .= $wpdb->prepare( '`advertisment_active` = %s', ( $view == 'active' ) ? '1' : '0' );
 		}
 		
 		if ( $vendor != $default_args['vendor'] ) {
@@ -58,17 +55,18 @@ class WAS_Class {
 			$where .= $wpdb->prepare( '`advertisment_size` = %s', $size );
 		}
 		
+		$limit = '';
+		
 		if ( $return != 'count' ) {
 			if ( empty( $entries ) || $entries < 1 )
 				$entries = 10;
 			if ( empty( $paged ) || $paged < 1 )
 				$paged = 1;
 			$limit = " LIMIT ". ( ( $paged - 1 ) * $entries ) .",". $entries;
-		} else {
-			$limit = '';
 		}
 		
 		$sql = "SELECT `advertisment_id` FROM `". $this->table_name ."`". $where ." ORDER BY `advertisment_id` ASC". $limit;
+		
 		$ads = $wpdb->get_col( $sql );
 		
 		if ( $return == 'object' ) {
